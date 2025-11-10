@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: lead-scraper-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-lead_scraper_db}
+      POSTGRES_USER: ${DB_USER:-lead_scraper}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-lead_scraper_pass_2025}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-lead_scraper}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lead-scraper-network
+
+  # Lead Scraper Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lead-scraper-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${DB_USER:-lead_scraper}:${DB_PASSWORD:-lead_scraper_pass_2025}@postgres:5432/${DB_NAME:-lead_scraper_db}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-lead_scraper_db}
+      DB_USER: ${DB_USER:-lead_scraper}
+      DB_PASSWORD: ${DB_PASSWORD:-lead_scraper_pass_2025}
+
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_PASSWORD: ${BOT_PASSWORD}
+
+      # Scraping
+      SCRAPING_SCHEDULE: ${SCRAPING_SCHEDULE:-daily}
+      SCRAPING_TIME: ${SCRAPING_TIME:-03:00}
+      ENABLED_NICHES: ${ENABLED_NICHES:-all}
+
+      # API Keys
+      TWOGIS_API_KEY: ${TWOGIS_API_KEY:-your_2gis_api_key_here}
+      YANDEX_API_KEY: ${YANDEX_API_KEY:-your_yandex_maps_api_key_here}
+      INSTAGRAM_SESSION_ID: ${INSTAGRAM_SESSION_ID:-}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    networks:
+      - lead-scraper-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  lead-scraper-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

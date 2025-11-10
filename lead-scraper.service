@@ -1,0 +1,32 @@
+[Unit]
+Description=Lead Scraper System
+After=network.target postgresql.service
+Requires=postgresql.service
+Documentation=https://github.com/LinkfordSolutions/lead-scraper-system
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/lead-scraper-system
+Environment="PATH=/root/lead-scraper-system/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Start command
+ExecStart=/root/lead-scraper-system/venv/bin/python /root/lead-scraper-system/app.py
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Logging
+StandardOutput=append:/root/lead-scraper-system/logs/systemd.log
+StandardError=append:/root/lead-scraper-system/logs/systemd-error.log
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
