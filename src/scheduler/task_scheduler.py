@@ -56,18 +56,55 @@ class TaskScheduler:
         logger.info("="*60)
 
         try:
-            # Register parsers
-            # For now using mock, in production add real parsers
-            from run_scraper import MockParser
+            # Register all parsers
+            logger.info("📦 Registering parsers...")
 
-            mock_parser = MockParser()
-            parser_manager.register_parser(mock_parser)
+            # 2GIS Parser
+            if config.TWOGIS_API_KEY and config.TWOGIS_API_KEY != 'your_2gis_api_key_here':
+                logger.info("  ✅ 2GIS parser")
+                twogis = TwoGISParser(api_key=config.TWOGIS_API_KEY)
+                parser_manager.register_parser(twogis)
+            else:
+                logger.info("  ⚠️  2GIS parser skipped (no API key)")
 
-            # TODO: Add real parsers when API keys are configured
-            # twogis = TwoGISParser(api_key=config.TWOGIS_API_KEY)
-            # parser_manager.register_parser(twogis)
+            # Yandex Maps Parser
+            if hasattr(config, 'YANDEX_API_KEY') and config.YANDEX_API_KEY:
+                from ..parsers.yandex_parser import YandexMapsParser
+                logger.info("  ✅ Yandex Maps parser")
+                yandex = YandexMapsParser(api_key=config.YANDEX_API_KEY)
+                parser_manager.register_parser(yandex)
+            else:
+                logger.info("  ⚠️  Yandex Maps parser skipped (no API key)")
+
+            # EGR Parser (no API key needed)
+            from ..parsers.egr_parser import EGRParser
+            logger.info("  ✅ EGR.gov.by parser")
+            egr = EGRParser()
+            parser_manager.register_parser(egr)
+
+            # Onliner Parser (no API key needed)
+            from ..parsers.onliner_parser import OnlinerParser
+            logger.info("  ✅ Onliner.by parser")
+            onliner = OnlinerParser()
+            parser_manager.register_parser(onliner)
+
+            # Deal Parser (no API key needed)
+            from ..parsers.deal_parser import DealParser
+            logger.info("  ✅ Deal.by parser")
+            deal = DealParser()
+            parser_manager.register_parser(deal)
+
+            # Instagram Parser (optional)
+            if hasattr(config, 'INSTAGRAM_SESSION_ID') and config.INSTAGRAM_SESSION_ID:
+                from ..parsers.instagram_parser import InstagramParser
+                logger.info("  ✅ Instagram parser")
+                instagram = InstagramParser(session_id=config.INSTAGRAM_SESSION_ID)
+                parser_manager.register_parser(instagram)
+            else:
+                logger.info("  ⚠️  Instagram parser skipped (no session ID)")
 
             # Run scraping
+            logger.info("🔍 Starting scraping...")
             categories = config.get_enabled_niches()
             await parser_manager.run_all_parsers(categories)
 
