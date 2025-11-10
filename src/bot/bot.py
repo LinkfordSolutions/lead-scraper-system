@@ -8,7 +8,10 @@ from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
-    ContextTypes
+    MessageHandler,
+    CallbackQueryHandler,
+    ConversationHandler,
+    filters
 )
 
 # Add parent directory to path
@@ -17,11 +20,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 from src.utils.config import config
 from src.bot.handlers import (
     start_command,
-    auth_command,
-    get_leads_command,
-    status_command,
-    help_command,
-    error_handler
+    button_auth_start,
+    receive_password,
+    button_info,
+    button_cancel,
+    handle_text_message,
+    error_handler,
+    WAITING_PASSWORD
 )
 
 # Setup logging
@@ -47,12 +52,35 @@ class LeadScraperBot:
 
     def setup_handlers(self):
         """Setup command handlers"""
+
+        # Authorization conversation handler
+        auth_conv_handler = ConversationHandler(
+            entry_points=[CallbackQueryHandler(button_auth_start, pattern="^auth_start$")],
+            states={
+                WAITING_PASSWORD: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, receive_password)
+                ],
+            },
+            fallbacks=[
+                CallbackQueryHandler(button_cancel, pattern="^cancel$"),
+                CommandHandler("start", start_command)
+            ],
+        )
+
         # Command handlers
         self.application.add_handler(CommandHandler("start", start_command))
-        self.application.add_handler(CommandHandler("auth", auth_command))
-        self.application.add_handler(CommandHandler("get_leads", get_leads_command))
-        self.application.add_handler(CommandHandler("status", status_command))
-        self.application.add_handler(CommandHandler("help", help_command))
+
+        # Conversation handler for auth
+        self.application.add_handler(auth_conv_handler)
+
+        # Callback query handlers (inline buttons)
+        self.application.add_handler(CallbackQueryHandler(button_info, pattern="^info$"))
+        self.application.add_handler(CallbackQueryHandler(button_cancel, pattern="^cancel$"))
+
+        # Text message handler (for menu buttons)
+        self.application.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message)
+        )
 
         # Error handler
         self.application.add_error_handler(error_handler)

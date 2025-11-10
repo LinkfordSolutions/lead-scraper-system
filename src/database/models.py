@@ -3,7 +3,7 @@ Database models for Lead Scraper System
 """
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Float, DateTime, Boolean,
+    Column, Integer, BigInteger, String, Float, DateTime, Boolean,
     Text, JSON, ForeignKey, Index, UniqueConstraint
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -166,7 +166,7 @@ class BotUser(Base):
 
     id = Column(Integer, primary_key=True)
 
-    telegram_id = Column(Integer, unique=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     username = Column(String(255))
     first_name = Column(String(255))
     last_name = Column(String(255))
