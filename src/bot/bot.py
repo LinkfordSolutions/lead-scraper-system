@@ -49,6 +49,20 @@ class LeadScraperBot:
         """Initialize bot"""
         self.token = config.TELEGRAM_BOT_TOKEN
         self.application = None
+        self.build_application()
+
+    def build_application(self):
+        """Build the application and setup handlers"""
+        # Create application
+        self.application = Application.builder().token(self.token).build()
+
+        # Setup handlers
+        self.setup_handlers()
+
+        # Add post init callback
+        self.application.post_init = self.post_init
+
+        logger.info("✅ Bot application built")
 
     def setup_handlers(self):
         """Setup command handlers"""
@@ -103,16 +117,7 @@ class LeadScraperBot:
             logger.error("❌ Configuration validation failed")
             sys.exit(1)
 
-        # Create application
-        self.application = Application.builder().token(self.token).build()
-
-        # Setup handlers
-        self.setup_handlers()
-
-        # Add post init callback
-        self.application.post_init = self.post_init
-
-        # Start polling
+        # Start polling (application already built in __init__)
         logger.info("🔄 Starting polling...")
         self.application.run_polling(
             allowed_updates=Update.ALL_TYPES,
