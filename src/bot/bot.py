@@ -28,6 +28,15 @@ from src.bot.handlers import (
     error_handler,
     WAITING_PASSWORD
 )
+from src.bot.advanced_handlers import (
+    handle_categories_button,
+    handle_category_selection,
+    handle_export_format,
+    handle_statistics_button,
+    handle_search_button,
+    handle_search_query,
+    WAITING_SEARCH_QUERY
+)
 
 # Setup logging
 logging.basicConfig(
@@ -87,11 +96,40 @@ class LeadScraperBot:
         # Conversation handler for auth
         self.application.add_handler(auth_conv_handler)
 
+        # Search conversation handler
+        search_conv_handler = ConversationHandler(
+            entry_points=[
+                MessageHandler(filters.Regex("^🔍 Поиск$"), handle_search_button)
+            ],
+            states={
+                WAITING_SEARCH_QUERY: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_search_query)
+                ],
+            },
+            fallbacks=[
+                CommandHandler("start", start_command),
+                MessageHandler(filters.Regex("^(📊|📈|ℹ️|🎯)"), handle_text_message)
+            ],
+        )
+        self.application.add_handler(search_conv_handler)
+
         # Callback query handlers (inline buttons)
         self.application.add_handler(CallbackQueryHandler(button_info, pattern="^info$"))
         self.application.add_handler(CallbackQueryHandler(button_cancel, pattern="^cancel$"))
 
-        # Text message handler (for menu buttons)
+        # Category selection handlers
+        self.application.add_handler(CallbackQueryHandler(handle_category_selection, pattern="^cat_"))
+        self.application.add_handler(CallbackQueryHandler(handle_export_format, pattern="^export_"))
+
+        # Menu button handlers (must be before general text handler)
+        self.application.add_handler(
+            MessageHandler(filters.Regex("^🎯 Фильтр по категориям$"), handle_categories_button)
+        )
+        self.application.add_handler(
+            MessageHandler(filters.Regex("^📈 Статистика$"), handle_statistics_button)
+        )
+
+        # Text message handler (for menu buttons) - should be last
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message)
         )
